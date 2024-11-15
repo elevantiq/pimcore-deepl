@@ -1,5 +1,5 @@
 {
-    "name": "agorate/pimcore-deepl",
+    "name": "elevantiq/pimcore-deepl",
     "type": "pimcore-bundle",
     "license": "GPL-3.0-or-later",
     "description": "With this Bundle you can translate your documents via DeepL Interface",
@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "pimcore/pimcore": "^10.0"
+        "pimcore/pimcore": "^10.0 || ^11.0"
     },
     "extra": {
         "pimcore": {
