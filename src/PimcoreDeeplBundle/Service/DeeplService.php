@@ -16,14 +16,12 @@ use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class DeeplService
 {
     private HttpClientInterface $httpClient;
 
-    public function __construct(private ContainerInterface $container)
-    {
+    public function __construct() {
         $this->httpClient = HttpClient::create();
     }
 
@@ -39,7 +37,8 @@ class DeeplService
             return null;
         }
 
-        $authKey = $this->container->getParameter('pimcore_deepl');
+        $container = \Pimcore::getContainer();
+        $authKey = $container->getParameter('pimcore_deepl');
 
         $response = $this->httpClient->request('POST', "https://api.deepl.com/v2/translate", [
             'body' => [
