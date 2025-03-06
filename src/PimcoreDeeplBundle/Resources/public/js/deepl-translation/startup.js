@@ -1,13 +1,10 @@
 pimcore.registerNS("pimcore.plugin.deeplTranslate");
 
-pimcore.plugin.deeplTranslate = Class.create(pimcore.plugin.admin, {
-    getClassName: function () {
-        return "pimcore.plugin.deeplTranslate";
+pimcore.plugin.deeplTranslate = Class.create({
+    initialize: function () {
+        document.addEventListener(pimcore.events.postOpenDocument, this.postOpenDocument.bind(this));
     },
 
-    initialize: function () {
-        pimcore.plugin.broker.registerPlugin(this);
-    },
     createTranslation: function (document) {
         var filteredWebsiteLanguages = pimcore.settings.websiteLanguages.filter(function(value, index, arr) {
             return value !== document.data.properties.language.data;
@@ -90,9 +87,10 @@ pimcore.plugin.deeplTranslate = Class.create(pimcore.plugin.admin, {
                 text: t("apply"),
                 iconCls: "pimcore_icon_apply",
                 handler: function () {
-                    var params = pageForm.getForm().getFieldValues();
-                    var id = document.data.id;
+                    let params = pageForm.getForm().getFieldValues();
+                    let id = document.data.id;
                     win.disable();
+
                     Ext.Ajax.request({
                         url: '/admin/deeplTranslateDocument',
                         method: "post",
@@ -119,15 +117,13 @@ pimcore.plugin.deeplTranslate = Class.create(pimcore.plugin.admin, {
 
         win.show();
     },
-    postOpenDocument: function (document, type) {
-        if (type !== 'page') {
-            return; // Do not show if selected element is not a page
-        }
-        if (document.data.path === '/') {
-            return; // Do not show translation in root path. Should not be translatable
+
+    postOpenDocument: function (e) {
+        if (e.detail.type !== 'page') {
+            return;
         }
 
-        let menuParent = document.toolbar.items.items
+        let menuParent = e.detail.document.toolbar.items.items
 
         // Check if Translation button exists and append to it
         menuParent.forEach(function(menu){
@@ -136,12 +132,11 @@ pimcore.plugin.deeplTranslate = Class.create(pimcore.plugin.admin, {
                     text: t('Deepl Translation'),
                     iconCls: 'pimcore_material_icon_translation',
                     scale: 'small',
-                    handler: this.createTranslation.bind(this, document),
+                    handler: this.createTranslation.bind(this, e.detail.document),
                 });
             }
         }.bind(this));
     }
-
 });
 
-var deeplTranslatePlugin = new pimcore.plugin.deeplTranslate();
+const deeplTranslatePlugin = new pimcore.plugin.deeplTranslate();

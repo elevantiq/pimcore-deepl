@@ -15,13 +15,11 @@ services:
         resource: '../../Controller'
         public: true
         tags: ['controller.service_arguments']
+
     Agorate\PimcoreDeeplBundle\Service\:
         resource: '../../Service'
         public: true
 
-# add more services, or override services that need manual wiring
-#    agorate\DeeplTranslationBundle\ExampleClass:
-#        arguments:
-#            - "@service_id"
-#            - "plain_value"
-#            - "%parameter%"
+    Agorate\PimcoreDeeplBundle\EventListener\AdminInterfaceListener:
+        tags:
+            - { name: kernel.event_listener, event: pimcore.bundle_manager.paths.js, method: addJsFiles }
