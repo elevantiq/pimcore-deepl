@@ -28,11 +28,14 @@ class DeeplService
         $container = \Pimcore::getContainer();
         $authKey = $container->getParameter('pimcore_deepl');
 
-        $response = $this->getHttpClient()->request('POST', "v2/translate", [
-            'form_params' => [
-                'auth_key' => $authKey,
-                'text' => $text,
-                'target_lang' => substr($targetLocale, 0, 2)
+        $response = $this->getHttpClient()->request('POST', 'v2/translate', [
+            'headers' => [
+                'Authorization' => 'DeepL-Auth-Key ' . $authKey,
+                'Content-Type' => 'application/json',
+            ],
+            'json' => [
+                'text' => [$text],
+                'target_lang' => substr($targetLocale, 0, 2),
             ]
         ]);
 

@@ -90,27 +90,45 @@ pimcore.plugin.deeplTranslate = Class.create({
                     let params = pageForm.getForm().getFieldValues();
                     let id = document.data.id;
                     win.disable();
+                    win.setTitle("Saving document...");
 
-                    Ext.Ajax.request({
-                        url: '/admin/deeplTranslateDocument',
-                        method: "post",
-                        params: {
-                            language: params.language,
-                            id: id,
-                            parent: params.parent
-                        },
-                        success: function (response) {
-                            var res = Ext.decode(response.responseText);
-                            if (res.success) {
-                                Ext.MessageBox.alert(t('Success'), 'Successfully translated document to "' + params.parent + '" named "' + res.key + '"');
-                                pimcore.helpers.openDocument(res.id, "page");
-                            } else {
-                                Ext.MessageBox.alert(t('Error'), t(res.message));
+                    var doTranslate = function () {
+                        win.setTitle("Translating...");
+                        Ext.Ajax.request({
+                            url: '/admin/deeplTranslateDocument',
+                            method: "post",
+                            params: {
+                                language: params.language,
+                                id: id,
+                                parent: params.parent
+                            },
+                            success: function (response) {
+                                var res = Ext.decode(response.responseText);
+                                if (res.success) {
+                                    win.close();
+                                    Ext.MessageBox.alert(t('Success'), 'Successfully translated document to "' + params.parent + '" named "' + res.key + '"');
+                                    pimcore.helpers.openDocument(res.id, "page");
+                                } else {
+                                    Ext.MessageBox.alert(t('Error'), res.message);
+                                    win.enable();
+                                    win.setTitle("");
+                                }
+                            },
+                            failure: function () {
+                                Ext.MessageBox.alert(t('Error'), 'Translation request failed. Please try again.');
                                 win.enable();
+                                win.setTitle("");
                             }
-                        }.bind(this)
-                    });
-                    win.close();
+                        });
+                    };
+
+                    try {
+                        document.save("version", null, function () {
+                            doTranslate();
+                        });
+                    } catch (e) {
+                        doTranslate();
+                    }
                 }.bind(this)
             }]
         });

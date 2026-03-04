@@ -113,34 +113,81 @@ class DefaultController extends FrontendController
 
         $elements = $newDocument->getEditables();
 
-        foreach ($elements as &$element) {
+        $hasTranslatableContent = false;
+        foreach ($elements as $element) {
             if (!in_array(get_class($element), [Input::class, Textarea::class, Wysiwyg::class])) {
                 continue;
             }
-            /** @var Input|Textarea|Wysiwyg */
-            $element->setDataFromResource($this->deeplService->translate($element->getData(), $targetLanguage));
-        }
-
-        foreach (self::TRANSLATABLE_PROPERTIES as $property) {
-            $newDocumentProperty = $newDocument->getProperty($property);
-            if (!is_string($newDocumentProperty) || $newDocumentProperty === '') {
-                continue;
+            if (!empty(trim($element->getData() ?? ''))) {
+                $hasTranslatableContent = true;
+                break;
             }
-            $newDocument->setProperty($property, "text", $this->deeplService->translate($newDocumentProperty, $targetLanguage));
         }
 
-        foreach (self::TRANSLATABLE_MODEL_KEYS as $modelKey) {
-            $modelKeyData = $document->{'get' . $modelKey}();
-            if ($modelKeyData === '') {
-                continue;
+        if (!$hasTranslatableContent) {
+            foreach (self::TRANSLATABLE_PROPERTIES as $property) {
+                $prop = $newDocument->getProperty($property);
+                if (is_string($prop) && $prop !== '') {
+                    $hasTranslatableContent = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$hasTranslatableContent) {
+            foreach (self::TRANSLATABLE_MODEL_KEYS as $modelKey) {
+                if (!empty($document->{'get' . $modelKey}())) {
+                    $hasTranslatableContent = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$hasTranslatableContent) {
+            $newDocument->delete();
+            return $this->json([
+                'success' => false,
+                'message' => 'Document has no translatable content. Please save the document before translating.'
+            ]);
+        }
+
+        try {
+            foreach ($elements as &$element) {
+                if (!in_array(get_class($element), [Input::class, Textarea::class, Wysiwyg::class])) {
+                    continue;
+                }
+                if (!empty(trim($element->getData() ?? ''))) {
+                    $element->setDataFromResource($this->deeplService->translate($element->getData(), $targetLanguage));
+                }
             }
 
-            $translatedModelKeyData = $this->deeplService->translate($modelKeyData, $targetLanguage);
+            foreach (self::TRANSLATABLE_PROPERTIES as $property) {
+                $newDocumentProperty = $newDocument->getProperty($property);
+                if (!is_string($newDocumentProperty) || $newDocumentProperty === '') {
+                    continue;
+                }
+                $newDocument->setProperty($property, "text", $this->deeplService->translate($newDocumentProperty, $targetLanguage));
+            }
 
-            $newDocument->{'set' . $modelKey}($translatedModelKeyData);
+            foreach (self::TRANSLATABLE_MODEL_KEYS as $modelKey) {
+                $modelKeyData = $document->{'get' . $modelKey}();
+                if ($modelKeyData === '') {
+                    continue;
+                }
+
+                $translatedModelKeyData = $this->deeplService->translate($modelKeyData, $targetLanguage);
+
+                $newDocument->{'set' . $modelKey}($translatedModelKeyData);
+            }
+
+            $newDocument->save();
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+            $newDocument->delete();
+            return $this->json([
+                'success' => false,
+                'message' => 'Translation failed: ' . $e->getMessage()
+            ]);
         }
-
-        $newDocument->save();
 
         $this->documentService->addTranslation($document, $newDocument, $targetLanguage);
 
