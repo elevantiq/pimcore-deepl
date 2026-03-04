@@ -122,12 +122,20 @@ pimcore.plugin.deeplTranslate = Class.create({
                         });
                     };
 
-                    try {
-                        document.save("version", null, function () {
+                    var translated = false;
+                    var onSaved = function () {
+                        if (!translated) {
+                            translated = true;
                             doTranslate();
-                        });
+                        }
+                    };
+
+                    try {
+                        document.save("version", null, onSaved);
+                        // fallback if save silently skips (e.g. no changes)
+                        setTimeout(onSaved, 3000);
                     } catch (e) {
-                        doTranslate();
+                        onSaved();
                     }
                 }.bind(this)
             }]
